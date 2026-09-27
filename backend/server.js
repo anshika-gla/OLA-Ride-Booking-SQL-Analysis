@@ -9,10 +9,10 @@ app.use(cors());
 app.use(express.json());
 
 const db = mysql.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "1234",
-    database: "ola_analysis"
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME
 });
 
 db.connect((err) => {
@@ -31,7 +31,6 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api/summary", (req, res) => {
-
     const query = `
         SELECT
             COUNT(*) AS total_bookings,
@@ -54,7 +53,6 @@ app.get("/api/summary", (req, res) => {
     `;
 
     db.query(query, (err, result) => {
-
         if (err) {
             console.error(err);
             return res.status(500).json({
@@ -66,8 +64,8 @@ app.get("/api/summary", (req, res) => {
     });
 });
 
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`🚀 Server running on port ${PORT}`);
 });
