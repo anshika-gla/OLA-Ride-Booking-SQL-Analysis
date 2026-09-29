@@ -13,7 +13,7 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/stats")
+    fetch("https://ola-ride-booking-sql-analysis-production.up.railway.app/api/summary")
       .then((res) => {
         if (!res.ok) throw new Error("API request failed");
         return res.json();
