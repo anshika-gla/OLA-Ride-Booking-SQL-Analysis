@@ -1,80 +1,40 @@
-CREATE DATABASE ola_analysis;
+-- ============================================================
+-- OLA RIDE BOOKING SQL ANALYSIS
+-- ============================================================
 
-USE ola_analysis;
-CREATE TABLE ola_bookings (
-    Booking_ID VARCHAR(20),
-    Booking_Date DATE,
-    Booking_Status VARCHAR(30),
-    Customer_ID VARCHAR(20),
-    Vehicle_Type VARCHAR(50),
-    Pickup_Location VARCHAR(100),
-    Drop_Location VARCHAR(100),
-    Ride_Distance DECIMAL(10,2),
-    Driver_Ratings DECIMAL(3,2),
-    Customer_Rating DECIMAL(3,2),
-    Booking_Value DECIMAL(10,2),
-    Payment_Method VARCHAR(30),
-    Cancelled_By VARCHAR(30),
-    Cancellation_Reason VARCHAR(255),
-    Driver_ID VARCHAR(20)
-);
+-- ============================================================
+-- 1. DATABASE
+-- ============================================================
+
+CREATE DATABASE IF NOT EXISTS ola_analysis;
 
 USE ola_analysis;
 
-SELECT COUNT(*) AS total_records
-FROM ola_bookings;
 
-SELECT COUNT(*) FROM ola_bookings;
+-- ============================================================
+-- 2. DATABASE / TABLE VERIFICATION
+-- ============================================================
 
-USE ola_analysis;
+SHOW TABLES;
 
 SELECT COUNT(*) AS total_records
 FROM ola_ride_bookings_10000;
 
-DROP TABLE ola_bookings;
+DESCRIBE ola_ride_bookings_10000;
 
 
-RENAME TABLE ola_ride_bookings_10000
-TO ola_bookings;
-
-USE ola_analysis;
-
-SHOW TABLES;
-
-USE ola_analysis;
-
-SHOW TABLES;
-SELECT COUNT(*) AS total_records
-FROM ola_ride_bookings_10000;
-
-USE ola_analysis;
+-- ============================================================
+-- 3. SAMPLE DATA EXPLORATION
+-- ============================================================
 
 SELECT *
 FROM ola_ride_bookings_10000
 LIMIT 10;
-DESCRIBE ola_ride_bookings_10000;
 
-USE ola_analysis;
 
-SELECT 
-    Booking_Status,
-    COUNT(*) AS total_bookings
-FROM ola_ride_bookings_10000
-GROUP BY Booking_Status;
-
-SELECT 
-    Vehicle_Type,
-    COUNT(*) AS total_rides
-FROM ola_ride_bookings_10000
-GROUP BY Vehicle_Type
-ORDER BY total_rides DESC;
-
-SELECT 
-    Payment_Method,
-    COUNT(*) AS transactions
-FROM ola_ride_bookings_10000
-GROUP BY Payment_Method
-ORDER BY transactions DESC;
+-- ============================================================
+-- 4. BOOKING STATUS ANALYSIS
+-- ============================================================
 
 SELECT
     Booking_Status,
@@ -83,30 +43,113 @@ FROM ola_ride_bookings_10000
 GROUP BY Booking_Status
 ORDER BY total_bookings DESC;
 
+
+-- ============================================================
+-- 5. TOTAL BOOKINGS
+-- ============================================================
+
 SELECT
-    ROUND(
-        SUM(CASE
+    COUNT(*) AS total_bookings
+FROM ola_ride_bookings_10000;
+
+
+-- ============================================================
+-- 6. SUCCESSFUL RIDES
+-- ============================================================
+
+SELECT
+    SUM(
+        CASE
+            WHEN Booking_Status = 'Success' THEN 1
+            ELSE 0
+        END
+    ) AS successful_rides
+FROM ola_ride_bookings_10000;
+
+
+-- ============================================================
+-- 7. CANCELLED RIDES
+-- ============================================================
+
+SELECT
+    SUM(
+        CASE
             WHEN Booking_Status <> 'Success' THEN 1
             ELSE 0
-        END) * 100.0 / COUNT(*),
+        END
+    ) AS cancelled_rides
+FROM ola_ride_bookings_10000;
+
+
+-- ============================================================
+-- 8. SUCCESS RATE
+-- ============================================================
+
+SELECT
+    ROUND(
+        SUM(
+            CASE
+                WHEN Booking_Status = 'Success' THEN 1
+                ELSE 0
+            END
+        ) * 100.0 / COUNT(*),
+        2
+    ) AS success_rate
+FROM ola_ride_bookings_10000;
+
+
+-- ============================================================
+-- 9. CANCELLATION RATE
+-- ============================================================
+
+SELECT
+    ROUND(
+        SUM(
+            CASE
+                WHEN Booking_Status <> 'Success' THEN 1
+                ELSE 0
+            END
+        ) * 100.0 / COUNT(*),
         2
     ) AS cancellation_rate
 FROM ola_ride_bookings_10000;
 
-SELECT 
-    SUM(Booking_Value) AS total_revenue
+
+-- ============================================================
+-- 10. TOTAL REVENUE FROM SUCCESSFUL RIDES
+-- ============================================================
+
+SELECT
+    ROUND(SUM(Booking_Value), 2) AS total_revenue
 FROM ola_ride_bookings_10000
 WHERE Booking_Status = 'Success';
 
-SELECT 
-    ROUND(AVG(Booking_Value), 2) AS average_booking_value
+
+-- ============================================================
+-- 11. AVERAGE REVENUE PER SUCCESSFUL RIDE
+-- ============================================================
+
+SELECT
+    ROUND(AVG(Booking_Value), 2) AS avg_successful_ride_value
 FROM ola_ride_bookings_10000
 WHERE Booking_Status = 'Success';
 
-SELECT 
-    ROUND(AVG(Booking_Value), 2) AS average_booking_value
+
+-- ============================================================
+-- 12. VEHICLE-WISE TOTAL RIDES
+-- ============================================================
+
+SELECT
+    Vehicle_Type,
+    COUNT(*) AS total_rides
 FROM ola_ride_bookings_10000
-WHERE Booking_Status = 'Success';
+GROUP BY Vehicle_Type
+ORDER BY total_rides DESC;
+
+
+-- ============================================================
+-- 13. VEHICLE-WISE SUCCESSFUL RIDES AND REVENUE
+-- ============================================================
 
 SELECT
     Vehicle_Type,
@@ -117,6 +160,81 @@ WHERE Booking_Status = 'Success'
 GROUP BY Vehicle_Type
 ORDER BY total_revenue DESC;
 
+
+-- ============================================================
+-- 14. VEHICLE-WISE AVERAGE BOOKING VALUE
+-- ============================================================
+
+SELECT
+    Vehicle_Type,
+    COUNT(*) AS successful_rides,
+    ROUND(AVG(Booking_Value), 2) AS avg_booking_value
+FROM ola_ride_bookings_10000
+WHERE Booking_Status = 'Success'
+GROUP BY Vehicle_Type
+ORDER BY avg_booking_value DESC;
+
+
+-- ============================================================
+-- 15. VEHICLE-WISE CUSTOMER RATING
+-- ============================================================
+
+SELECT
+    Vehicle_Type,
+    COUNT(*) AS successful_rides,
+    ROUND(AVG(Customer_Rating), 2) AS avg_customer_rating
+FROM ola_ride_bookings_10000
+WHERE Booking_Status = 'Success'
+GROUP BY Vehicle_Type
+ORDER BY avg_customer_rating DESC;
+
+
+-- ============================================================
+-- 16. VEHICLE-WISE CANCELLATION RATE
+-- ============================================================
+
+SELECT
+    Vehicle_Type,
+    COUNT(*) AS total_bookings,
+
+    SUM(
+        CASE
+            WHEN Booking_Status <> 'Success' THEN 1
+            ELSE 0
+        END
+    ) AS cancelled_bookings,
+
+    ROUND(
+        SUM(
+            CASE
+                WHEN Booking_Status <> 'Success' THEN 1
+                ELSE 0
+            END
+        ) * 100.0 / COUNT(*),
+        2
+    ) AS cancellation_rate
+
+FROM ola_ride_bookings_10000
+GROUP BY Vehicle_Type
+ORDER BY cancellation_rate DESC;
+
+
+-- ============================================================
+-- 17. PAYMENT METHOD ANALYSIS
+-- ============================================================
+
+SELECT
+    Payment_Method,
+    COUNT(*) AS transactions
+FROM ola_ride_bookings_10000
+GROUP BY Payment_Method
+ORDER BY transactions DESC;
+
+
+-- ============================================================
+-- 18. PAYMENT METHOD - SUCCESSFUL RIDES AND REVENUE
+-- ============================================================
+
 SELECT
     Payment_Method,
     COUNT(*) AS successful_rides,
@@ -125,6 +243,11 @@ FROM ola_ride_bookings_10000
 WHERE Booking_Status = 'Success'
 GROUP BY Payment_Method
 ORDER BY total_revenue DESC;
+
+
+-- ============================================================
+-- 19. CANCELLATION REASONS
+-- ============================================================
 
 SELECT
     Cancelled_By,
@@ -135,6 +258,40 @@ WHERE Booking_Status <> 'Success'
 GROUP BY Cancelled_By, Cancellation_Reason
 ORDER BY total_cancellations DESC;
 
+
+-- ============================================================
+-- 20. TOP PICKUP LOCATIONS
+-- ============================================================
+
+SELECT
+    Pickup_Location,
+    COUNT(*) AS successful_rides
+FROM ola_ride_bookings_10000
+WHERE Booking_Status = 'Success'
+GROUP BY Pickup_Location
+ORDER BY successful_rides DESC
+LIMIT 10;
+
+
+-- ============================================================
+-- 21. TOP PICKUP-DROP ROUTES
+-- ============================================================
+
+SELECT
+    Pickup_Location,
+    Drop_Location,
+    COUNT(*) AS successful_rides
+FROM ola_ride_bookings_10000
+WHERE Booking_Status = 'Success'
+GROUP BY Pickup_Location, Drop_Location
+ORDER BY successful_rides DESC
+LIMIT 10;
+
+
+-- ============================================================
+-- 22. TOP DRIVERS BY SUCCESSFUL RIDES
+-- ============================================================
+
 SELECT
     Driver_ID,
     COUNT(*) AS successful_rides,
@@ -144,6 +301,12 @@ WHERE Booking_Status = 'Success'
 GROUP BY Driver_ID
 ORDER BY successful_rides DESC
 LIMIT 10;
+
+
+-- ============================================================
+-- 23. TOP RATED DRIVERS
+-- Minimum 10 successful rides
+-- ============================================================
 
 SELECT
     Driver_ID,
@@ -157,99 +320,47 @@ ORDER BY avg_driver_rating DESC
 LIMIT 10;
 
 
-SELECT
-    Vehicle_Type,
-    COUNT(*) AS successful_rides,
-    ROUND(AVG(Customer_Rating), 2) AS avg_customer_rating
-FROM ola_ride_bookings_10000
-WHERE Booking_Status = 'Success'
-GROUP BY Vehicle_Type
-ORDER BY avg_customer_rating DESC;
+-- ============================================================
+-- 24. MONTHLY BOOKING ANALYSIS
+-- ============================================================
 
 SELECT
-    Pickup_Location,
-    COUNT(*) AS successful_rides
-FROM ola_ride_bookings_10000
-WHERE Booking_Status = 'Success'
-GROUP BY Pickup_Location
-ORDER BY successful_rides DESC
-LIMIT 10;
-SELECT
-    Pickup_Location,
-    Drop_Location,
-    COUNT(*) AS successful_rides
-FROM ola_ride_bookings_10000
-WHERE Booking_Status = 'Success'
-GROUP BY Pickup_Location, Drop_Location
-ORDER BY successful_rides DESC
-LIMIT 10;
-
-
-SELECT
-    Vehicle_Type,
-    COUNT(*) AS total_bookings,
-    SUM(CASE
-        WHEN Booking_Status != 'Success' THEN 1
-        ELSE 0
-    END) AS cancelled_bookings,
-    ROUND(
-        SUM(CASE
-            WHEN Booking_Status != 'Success' THEN 1
-            ELSE 0
-        END) * 100.0 / COUNT(*),
-        2
-    ) AS cancellation_rate
-FROM ola_ride_bookings_10000
-GROUP BY Vehicle_Type
-ORDER BY cancellation_rate DESC;
-
-SELECT
-    DATE_FORMAT(STR_TO_DATE(Booking_Date, '%d-%m-%Y'), '%Y-%m') AS booking_month,
-    COUNT(*) AS total_bookings,
-    SUM(CASE
-        WHEN Booking_Status = 'Success' THEN 1
-        ELSE 0
-    END) AS successful_bookings,
-    SUM(CASE
-        WHEN Booking_Status != 'Success' THEN 1
-        ELSE 0
-    END) AS cancelled_bookings
-FROM ola_ride_bookings_10000
-GROUP BY booking_month
-ORDER BY booking_month;
-
-SELECT Booking_Date
-FROM ola_ride_bookings_10000
-LIMIT 10;
-
-
-SELECT
-    DATE_FORMAT(STR_TO_DATE(Booking_Date, '%Y-%m-%d'), '%Y-%m') AS booking_month,
-    COUNT(*) AS total_bookings,
-    SUM(CASE
-        WHEN Booking_Status = 'Success' THEN 1
-        ELSE 0
-    END) AS successful_bookings,
-    SUM(CASE
-        WHEN Booking_Status != 'Success' THEN 1
-        ELSE 0
-    END) AS cancelled_bookings
-FROM ola_ride_bookings_10000
-GROUP BY booking_month
-ORDER BY booking_month;
-
-
-SELECT
-    DATE_FORMAT(
-        STR_TO_DATE(Booking_Date, '%Y-%m-%d'),
-        '%Y-%m'
-    ) AS booking_month,
+    DATE_FORMAT(Booking_Date, '%Y-%m') AS booking_month,
 
     COUNT(*) AS total_bookings,
 
     SUM(
         CASE
-            WHEN Booking_Status != 'Success' THEN 1
+            WHEN Booking_Status = 'Success' THEN 1
+            ELSE 0
+        END
+    ) AS successful_bookings,
+
+    SUM(
+        CASE
+            WHEN Booking_Status <> 'Success' THEN 1
+            ELSE 0
+        END
+    ) AS cancelled_bookings
+
+FROM ola_ride_bookings_10000
+
+GROUP BY booking_month
+ORDER BY booking_month;
+
+
+-- ============================================================
+-- 25. MONTHLY CANCELLATION RATE
+-- ============================================================
+
+SELECT
+    DATE_FORMAT(Booking_Date, '%Y-%m') AS booking_month,
+
+    COUNT(*) AS total_bookings,
+
+    SUM(
+        CASE
+            WHEN Booking_Status <> 'Success' THEN 1
             ELSE 0
         END
     ) AS cancelled_bookings,
@@ -257,7 +368,7 @@ SELECT
     ROUND(
         SUM(
             CASE
-                WHEN Booking_Status != 'Success' THEN 1
+                WHEN Booking_Status <> 'Success' THEN 1
                 ELSE 0
             END
         ) * 100.0 / COUNT(*),
@@ -267,13 +378,18 @@ SELECT
 FROM ola_ride_bookings_10000
 
 GROUP BY booking_month
-
 ORDER BY cancellation_rate DESC;
 
 
+-- ============================================================
+-- 26. VEHICLE REVENUE RANKING
+-- ============================================================
+
 SELECT
     Vehicle_Type,
+
     COUNT(*) AS successful_rides,
+
     ROUND(SUM(Booking_Value), 2) AS total_revenue,
 
     RANK() OVER (
@@ -286,104 +402,45 @@ WHERE Booking_Status = 'Success'
 
 GROUP BY Vehicle_Type;
 
+
+-- ============================================================
+-- 27. DRIVER RANKING
+-- ============================================================
+
 SELECT
-    Vehicle_Type,
+    Driver_ID,
+
     COUNT(*) AS successful_rides,
-    ROUND(SUM(Booking_Value), 2) AS total_revenue,
+
     RANK() OVER (
-        ORDER BY SUM(Booking_Value) DESC
-    ) AS revenue_rank
+        ORDER BY COUNT(*) DESC
+    ) AS ride_rank
+
 FROM ola_ride_bookings_10000
+
 WHERE Booking_Status = 'Success'
-GROUP BY Vehicle_Type;
 
-SELECT
-    Vehicle_Type,
-    COUNT(*) AS successful_rides,
-    ROUND(SUM(Booking_Value), 2) AS total_revenue,
-    RANK() OVER (
-        ORDER BY SUM(Booking_Value) DESC
-    ) AS revenue_rank
-FROM ola_ride_bookings_10000
-WHERE Booking_Status = 'Success'
-GROUP BY Vehicle_Type;
-
-SELECT
-    Vehicle_Type,
-    COUNT(*) AS total_rides,
-    ROUND(AVG(Booking_Value), 2) AS avg_booking_value
-FROM ola_ride_bookings_10000
-WHERE Booking_Status = 'Success'
-GROUP BY Vehicle_Type
-ORDER BY avg_booking_value DESC;
+GROUP BY Driver_ID;
 
 
-SELECT
-    Vehicle_Type,
-    COUNT(*) AS successful_rides,
-    ROUND(AVG(Customer_Rating), 2) AS avg_customer_rating
-FROM ola_ride_bookings_10000
-WHERE Booking_Status = 'Success'
-GROUP BY Vehicle_Type
-ORDER BY avg_customer_rating DESC;
-
-SELECT
-    Pickup_Location,
-    COUNT(*) AS successful_rides
-FROM ola_ride_bookings_10000
-WHERE Booking_Status = 'Success'
-GROUP BY Pickup_Location
-ORDER BY successful_rides DESC
-LIMIT 10;
-
-SELECT
-    ROUND(
-        SUM(CASE WHEN Booking_Status <> 'Success' THEN 1 ELSE 0 END)
-        * 100.0 / COUNT(*),
-        2
-    ) AS cancellation_rate
-FROM ola_ride_bookings_10000;
-
-
-
-SELECT
-    Cancelled_By,
-    Cancellation_Reason,
-    COUNT(*) AS total_cancellations
-FROM ola_ride_bookings_10000
-WHERE Booking_Status <> 'Success'
-GROUP BY Cancelled_By, Cancellation_Reason
-ORDER BY total_cancellations DESC;
-
-SELECT
-    COUNT(*) AS total_bookings,
-    SUM(Booking_Status = 'Success') AS successful_bookings,
-    SUM(Booking_Status <> 'Success') AS cancelled_bookings,
-    ROUND(SUM(Booking_Value), 2) AS total_revenue,
-    ROUND(AVG(Booking_Value), 2) AS avg_booking_value,
-    ROUND(
-        SUM(Booking_Status <> 'Success') * 100.0 / COUNT(*), 2
-    ) AS cancellation_rate
-FROM ola_ride_bookings_10000;
-
+-- ============================================================
+-- 28. VEHICLE ANALYSIS USING CTE
+-- ============================================================
 
 WITH vehicle_analysis AS (
+
     SELECT
         Vehicle_Type,
         COUNT(*) AS successful_rides,
         ROUND(SUM(Booking_Value), 2) AS total_revenue
+
     FROM ola_ride_bookings_10000
+
     WHERE Booking_Status = 'Success'
+
     GROUP BY Vehicle_Type
 )
+
 SELECT *
 FROM vehicle_analysis
-ORDER BY total_revenue DESC; 
-
-SELECT
-    Driver_ID,
-    COUNT(*) AS successful_rides,
-    RANK() OVER (ORDER BY COUNT(*) DESC) AS ride_rank
-FROM ola_ride_bookings_10000
-WHERE Booking_Status = 'Success'
-GROUP BY Driver_ID;
+ORDER BY total_revenue DESC;
